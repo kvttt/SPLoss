@@ -79,18 +79,27 @@ def visualize(
 
 
 class SelfProximityLoss(nn.Module):
-    def __init__(self, delta: float, reduction: str = 'mean'):
+    def __init__(self, reduction: str = 'mean', kernel: str = 'MacDonald', delta: float | None = None, eps: float = 1e-6) -> None:
         super().__init__()
-        self.delta = delta
         if reduction not in ['none', 'sum', 'mean']:
             raise ValueError(f"Invalid reduction mode: {reduction}. Expected one of 'none', 'mean', 'sum'.")
         self.reduction = reduction
+        if kernel not in ['MacDonald', 'repulsion']:
+            raise ValueError(f"Invalid kernel: {kernel}. Expected one of 'MacDonald', 'repulsion'.")
+        self.kernel = kernel
+        if kernel == 'MacDonald' and delta is None:
+            raise ValueError("delta must be specified when using MacDonald kernel.")
+        self.delta = delta
+        self.eps = eps
     def forward(self, vertices: torch.Tensor, pairs: np.ndarray) -> torch.Tensor:
         v0 = vertices[:, pairs[:, 0], :]
         v1 = vertices[:, pairs[:, 1], :]
         d = torch.linalg.norm(v0 - v1, dim=-1)
-        p = torch.zeros_like(d)
-        p[d < self.delta] = (self.delta - d[d < self.delta]) ** 2
+        if self.kernel == 'MacDonald':
+            p = torch.zeros_like(d)
+            p[d < self.delta] = (self.delta - d[d < self.delta]) ** 2
+        else:
+            p = 1 / (d ** 2 + self.eps)
 
         if self.reduction == 'none':
             return p
