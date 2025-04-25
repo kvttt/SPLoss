@@ -106,4 +106,7 @@ class SelfProximityLoss(nn.Module):
         elif self.reduction == 'sum':
             return p.sum()
         else:
-            return p.sum() / torch.gt(p, 0).sum()
+            if self.kernel == 'MacDonald':
+                return p.sum() / torch.gt(p, 0).sum()
+            else:
+                return p.mean()
