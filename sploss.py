@@ -110,3 +110,16 @@ class SelfProximityLoss(nn.Module):
                 return p.sum() / (torch.gt(p, 0).sum() + self.eps)
             else:
                 return p.mean()
+
+
+if __name__ == "__main__":
+    r = 0.2
+    vertices, faces = load_mesh("./lh.pial.vtk")
+    pairs = find_r_pairs(vertices, r)
+    adj = build_adjacency(faces, len(vertices))
+    pairs = filter_neighbor_pairs(pairs, adj)
+    print(f"pairs: {len(pairs)}")
+    sp_loss = SelfProximityLoss(reduction='mean', kernel='repulsion')
+    vertices = torch.from_numpy(vertices).unsqueeze(0)
+    sp_loss_val = sp_loss(vertices, pairs)
+    print(f"sp_loss_val: {sp_loss_val}")
